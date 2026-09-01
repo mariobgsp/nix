@@ -30,7 +30,7 @@ One import to turn NixOS into an Omarchy-like Hyprland OS — leaner (gc + zram 
 
 ## Prerequisites
 
-- NixOS 25.05+ (unstable ok), `nix-command` + `flakes` enabled
+- NixOS 25.05 (stable, follows flake nixpkgs/nixos-25.05), `nix-command` + `flakes` enabled
 - `home-manager`
 - User `mario` — change `home-manager.users.mario` in `omarchy.nix` if different
 
@@ -38,9 +38,11 @@ One import to turn NixOS into an Omarchy-like Hyprland OS — leaner (gc + zram 
 
 ## Install
 
-### Minimal ISO → Omarchy (recommended)
+Pick ISO — all three work, minimal is cleanest.
 
-Start from **NixOS minimal ISO** (No desktop). GNOME/KDE ISOs work but leave bloat to clean.
+### 1) Minimal ISO → Omarchy (recommended)
+
+Cleanest: no desktop bloat.
 
 ```bash
 # 1. After first boot on NixOS:
@@ -53,9 +55,48 @@ sudo nixos-rebuild switch --flake .#nixos
 reboot # pick Hyprland at SDDM
 ```
 
-`flake.nix` already wires `configuration.nix + omarchy.nix + home-manager` — no `/etc/nixos` edit needed.
+### 2) GNOME ISO → Omarchy
 
-### Classic `/etc/nixos` (no flake)
+GNOME ISO works — you keep GNOME as fallback, Hyprland as daily.
+
+```bash
+# 1. Same hardware config as above
+sudo nixos-generate-config --show-hardware-config > ~/nix/hardware-configuration.nix
+
+# 2. Build — Hyprland auto-added alongside GNOME
+cd ~/nix
+sudo nixos-rebuild switch --flake .#nixos
+reboot # SDDM → pick Hyprland (or GNOME to fall back)
+```
+
+To remove GNOME later (optional, saves ~2GB):
+```nix
+# configuration.nix: ensure GNOME disabled
+services.xserver.desktopManager.gnome.enable = false;
+services.xserver.displayManager.gdm.enable = false;
+```
+Then `sudo nixos-rebuild switch --flake .#nixos && nix-collect-garbage -d`.
+
+### 3) KDE Plasma ISO → Omarchy
+
+Same as GNOME — Plasma stays as fallback.
+
+```bash
+sudo nixos-generate-config --show-hardware-config > ~/nix/hardware-configuration.nix
+cd ~/nix
+sudo nixos-rebuild switch --flake .#nixos
+reboot # SDDM → Hyprland (Plasma still available)
+```
+
+To remove Plasma later:
+```nix
+services.desktopManager.plasma6.enable = false;
+services.displayManager.sddm.enable = true; # omarchy.nix already sets this
+```
+
+All three paths: `flake.nix` already wires `configuration.nix + omarchy.nix + home-manager` — no `/etc/nixos` edit needed.
+
+### Classic `/etc/nixos` (no flake, any ISO)
 
 ```bash
 sudo cp ~/nix/omarchy.nix /etc/nixos/omarchy.nix

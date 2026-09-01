@@ -18,11 +18,14 @@
   # --- Efficiency (beats Omarchy disk/CPU) ---
   nix.settings.auto-optimise-store = true;
   nix.gc = { automatic = true; dates = "weekly"; options = "--delete-older-than 7d"; };
+  nix.settings.min-free = 1024 * 1024 * 1024; # auto-gc when <1GB left on 512GB nvme
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
   services.fstrim.enable = true;
   zramSwap.enable = true; # ponytail: zram ~ better than swap partition, disable if RAM >64GB and you care about raw perf
   services.thermald.enable = true;
   services.power-profiles-daemon.enable = true;
+  # UX: night light (replaces omarchy toggle) — enable when needed
+  # services.hyprsunset.enable = true;
 
   # --- Core OS (Omarchy base) ---
   services.displayManager.sddm.enable = true;
@@ -45,6 +48,44 @@
   services.blueman.enable = true;
   fonts.packages = with pkgs; [ jetbrains-mono nerd-fonts.jetbrains-mono inter geist-font ];
 
+  # --- Gaming (GPU covered: AMD amdgpu + Vulkan + Steam + Gamemode) ---
+  hardware.graphics = {
+    enable = true;
+    enable32Bit = true; # 32-bit Vulkan for Proton
+  };
+  hardware.enableAllFirmware = true;
+  # AMD Phoenix1 (detected) uses amdgpu — already in kernel, no extra driver needed
+  # For NVIDIA hybrid later: services.xserver.videoDrivers = [ "nvidia" ]; hardware.nvidia.open = true;
+  programs.steam = {
+    enable = true;
+    remotePlay.openFirewall = true;
+    dedicatedServer.openFirewall = true;
+    extraCompatPackages = with pkgs; [ proton-ge-bin ];
+  };
+  programs.gamemode.enable = true;
+  # ponytail: mangohud + proton helpers — YAGNI lutris/bottles until needed
+  # --- ThinkPad T14s Gen4 (Ryzen 7 7840U Phoenix1 + QCNFA765) laptop tune ---
+  hardware.cpu.amd.updateMicrocode = true;
+  hardware.enableRedistributableFirmware = true;
+  services.fwupd.enable = true;
+  services.thinkfan.enable = false; # ponytail: thinkfan manual curve YAGNI, use power-profiles-daemon auto
+  # amdgpu + RADV Vulkan already covered by hardware.graphics
+  hardware.amdgpu.initrd.enable = true;
+  hardware.amdgpu.opencl.enable = true;
+  # Qualcomm ath11k firmware already via enableAllFirmware
+  networking.networkmanager.wifi.powersave = false; # fix ath11k drop on suspend
+  # 16 threads + 14Gi RAM -> tune zram for gaming
+  zramSwap.algorithm = "zstd";
+  zramSwap.memoryPercent = 50;
+  # power: better battery + performance profile auto
+  services.power-profiles-daemon.enable = true;
+  services.upower.enable = true;
+  # suspend-then-hibernate for laptop
+  services.logind.settings.Login.HandleLidSwitch = "suspend-then-hibernate";
+  systemd.sleep.extraConfig = "HibernateDelaySec=1h";
+
+
+
   environment.systemPackages = with pkgs; [
     ghostty kitty # ghostty primary like Omarchy, kitty fallback
     waybar
@@ -55,6 +96,8 @@
     nautilus # file manager like Omarchy
     brave firefox
     neovim git curl wget
+    # Gaming helpers
+    mangohud gamemode vulkan-tools proton-ge-bin
     # AI agents — same as Omarchy 4.0
     codex claude-code
   ];
@@ -156,36 +199,36 @@
           persistent-workspaces = { "1" = []; "2" = []; "3" = []; "4" = []; "5" = []; };
         };
         "custom/omarchy" = {
-          format = "<span font='omarchy'>\ue900</span>";
-          on-click = "omarchy-menu";
-          on-click-right = "xdg-terminal-exec";
+          format = " ◉ ";
+          on-click = "walker";
+          on-click-right = "ghostty";
         };
         clock = { format = "{:L%A %H:%M}"; tooltip = false; };
         "custom/weather" = {
-          exec = "$HOME/.local/share/omarchy/default/waybar/weather.sh";
-          return-type = "json"; interval = 60; tooltip = false;
+          exec = "curl -s 'wttr.in/Jakarta?format=%c+%t' 2>/dev/null || echo ''";
+          interval = 1800; tooltip = false;
         };
         "custom/update" = {
-          format = "\uf021"; exec = "omarchy-update-available";
-          on-click = "omarchy-launch-floating-terminal-with-presentation omarchy-update";
-          signal = 7; interval = 21600;
+          format = "\uf021"; exec = "echo '{\"text\":\"\"}'";
+          on-click = "ghostty -e bash -c 'sudo nixos-rebuild switch --flake ~/nix#nixos; read -p "done"'";
+          interval = 21600;
         };
         "group/tray-expander" = { orientation = "horizontal"; modules = [ "custom/expand-icon" "tray" ]; };
         "custom/expand-icon" = { format = "\uf053"; tooltip = false; };
         "custom/voxtype" = { format = "\uf130"; };
-        "custom/screenrecording-indicator" = { exec = "$HOME/.local/share/omarchy/default/waybar/indicators/screen-recording.sh"; signal = 8; return-type = "json"; };
-        "custom/idle-indicator" = { exec = "$HOME/.local/share/omarchy/default/waybar/indicators/idle.sh"; signal = 9; return-type = "json"; };
-        "custom/notification-silencing-indicator" = { exec = "$HOME/.local/share/omarchy/default/waybar/indicators/notifications.sh"; signal = 10; return-type = "json"; };
+        "custom/screenrecording-indicator" = { exec = "pgrep -x wf-recorder >/dev/null && echo '{\"text\":\"󰑋\",\"class\":\"active\"}' || echo '{\"text\":\"\"}'"; signal = 8; return-type = "json"; interval = 5; };
+        "custom/idle-indicator" = { exec = "pgrep -x hypridle >/dev/null && echo '{\"text\":\"\",\"class\":\"\"}' || echo '{\"text\":\"󰒲\",\"class\":\"active\"}'"; on-click = "pkill hypridle || hypridle &"; signal = 9; return-type = "json"; interval = 5; };
+        "custom/notification-silencing-indicator" = { exec = "makoctl mode 2>/dev/null | grep -q do-not-disturb && echo '{\"text\":\"󰂛\",\"class\":\"active\"}' || echo '{\"text\":\"\"}'"; on-click = "makoctl mode -t do-not-disturb"; signal = 10; return-type = "json"; interval = 5; };
         network = {
           format-icons = ["\uf06af" "\uf091f" "\uf0922" "\uf0925" "\uf0928"]; format = "{icon}"; format-wifi = "{icon}"; format-ethernet = "\uf0802"; format-disconnected = "\uf092e";
-          interval = 3; spacing = 1; on-click = "omarchy-launch-wifi";
+          interval = 3; spacing = 1; on-click = "ghostty -e nmtui";
         };
-        bluetooth = { format = "\uf0a94"; format-off = "\uf08b2"; on-click = "omarchy-launch-bluetooth"; };
+        bluetooth = { format = "\uf0a94"; format-off = "\uf08b2"; on-click = "blueman-manager"; };
         pulseaudio = {
-          format = "{icon}"; on-click = "omarchy-launch-audio"; on-click-right = "pamixer -t";
+          format = "{icon}"; on-click = "pavucontrol"; on-click-right = "pamixer -t";
           format-muted = "\ueba8"; format-icons = { headphone = "\uf025"; default = ["\uf026" "\uf027" "\uF028"]; };
         };
-        cpu = { interval = 5; format = "\uf02db"; on-click = "omarchy-launch-or-focus-tui btop"; };
+        cpu = { interval = 5; format = "\uf02db"; on-click = "ghostty -e btop"; };
         battery = {
           format = "{capacity}% {icon}";
           format-icons = { default = ["\uf078a" "\uf078b" "\uf078c"]; };
@@ -227,7 +270,8 @@
     programs.ghostty = {
       enable = true;
       settings = {
-        theme = "catppuccin-mocha";
+        theme = "catppuccin-mocha"
+      plugins = ["applications","calc","clipboard"];
         font-family = "JetBrainsMono Nerd Font";
         font-size = 12;
         background-opacity = 0.92;

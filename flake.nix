@@ -1,8 +1,8 @@
 {
   description = "mariobgsp/nix — Omarchy on NixOS (1:1 Hyprland + walker + waybar)";
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    home-manager.url = "github:nix-community/home-manager";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-25.05";
+    home-manager.url = "github:nix-community/home-manager/release-25.05";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
     # optional: latest walker — uncomment when you want git tip
     # walker.url = "github:abenz1267/walker";
