@@ -1,5 +1,5 @@
-# omarchy.nix — one import to make NixOS an Omarchy-like Hyprland OS
-# More efficient than Omarchy (gc + optimise + zram) and more effective (declarative + rollback)
+# omarchy.nix — ThinkPad T14s Gen4 21F9 (Ryzen 7 PRO 7840U Phoenix1 780M + QCNFA765) only
+# Tuned for this hardware — not generic, no NVIDIA/Intel fallbacks
 #
 # Usage in flake.nix:
 #   inputs.home-manager.url = "github:nix-community/home-manager";
@@ -10,7 +10,7 @@
 #   }
 # Or without flake: imports = [ ./omarchy.nix ]; in /etc/nixos/configuration.nix (needs home-manager)
 #
-# ponytail: single module, no extra flake inputs (stylix/catppuccin optional). Add when you want full theme sync.
+# T14s-only: single module, no stylix — catppuccin-mocha locked
 
 { config, pkgs, lib, ... }:
 
@@ -21,7 +21,7 @@
   nix.settings.min-free = 1024 * 1024 * 1024; # auto-gc when <1GB left on 512GB nvme
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
   services.fstrim.enable = true;
-  zramSwap.enable = true; # ponytail: zram ~ better than swap partition, disable if RAM >64GB and you care about raw perf
+  zramSwap.enable = true;
   services.power-profiles-daemon.enable = true;
   # UX: night light (replaces omarchy toggle) — enable when needed
   # services.hyprsunset.enable = true;
@@ -53,8 +53,7 @@
     enable32Bit = true; # 32-bit Vulkan for Proton
   };
   hardware.enableAllFirmware = true;
-  # AMD Phoenix1 (detected) uses amdgpu — already in kernel, no extra driver needed
-  # For NVIDIA hybrid later: services.xserver.videoDrivers = [ "nvidia" ]; hardware.nvidia.open = true;
+  # AMD Phoenix1 780M — amdgpu only, no NVIDIA
   programs.steam = {
     enable = true;
     remotePlay.openFirewall = true;
@@ -82,11 +81,8 @@
   # lower idle power: dim + lock
   services.logind.settings.Login.HandleLidSwitch = "suspend-then-hibernate";
   systemd.sleep.extraConfig = "HibernateDelaySec=2h";
-  # wifi already: networking.networkmanager.wifi.powersave = false; # keep false for ath11k stability, battery loss ~2% only
-  # waybar battery already polls 5s — fine
-
   zramSwap.algorithm = "zstd";
-  zramSwap.memoryPercent = 50;
+  zramSwap.memoryPercent = 50; # 14.6Gi RAM → 7.2Gi device ~18Gi effective
 
 
 
@@ -275,8 +271,7 @@
     programs.ghostty = {
       enable = true;
       settings = {
-        theme = "catppuccin-mocha"
-      plugins = ["applications","calc","clipboard"];
+        theme = "catppuccin-mocha";
         font-family = "JetBrainsMono Nerd Font";
         font-size = 12;
         background-opacity = 0.92;
@@ -291,7 +286,7 @@
     home.packages = with pkgs; [ walker ];
     xdg.configFile."walker/config.toml".text = ''
       theme = "catppuccin-mocha"
-      # add plugins = ["calc","clipboard"] when needed — YAGNI for now
+      plugins = ["applications","calc","clipboard"]
     '';
 
     # --- AI integration like Omarchy 4.0 ---
