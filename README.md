@@ -42,22 +42,32 @@ Pick ISO — all three work, minimal is cleanest.
 
 ### 1) Minimal ISO → Omarchy (recommended)
 
-Cleanest: no desktop bloat.
+Cleanest: no desktop bloat. No GUI yet, so connect WiFi first.
 
 ```bash
-# 0. Clone repo (first time only)
+# 0. Connect WiFi (minimal ISO has no NetworkManager GUI)
+# Option A — nmcli (recommended, NetworkManager is on the ISO):
+nmcli device wifi list
+sudo nmcli device wifi connect "YOUR_SSID" password "YOUR_PASSWORD"
+# Option B — nmtui (TUI):
+# nmtui  # Edit/Activate connection
+ping -c1 github.com  # verify
+
+# 1. Clone repo (first time only)
 nix-shell -p git --run "git clone https://github.com/mariobgsp/nix.git ~/nix"
 # or: git clone https://github.com/mariobgsp/nix.git ~/nix  # if git already installed
 
-# 1. Generate hardware config for this machine
+# 2. Generate hardware config for this machine
 sudo nixos-generate-config --show-hardware-config > ~/nix/hardware-configuration.nix
 # or: cp /etc/nixos/hardware-configuration.nix ~/nix/hardware-configuration.nix
 
-# 2. Build
+# 3. Build
 cd ~/nix
 sudo nixos-rebuild switch --flake .#nixos
 reboot # pick Hyprland at SDDM
 ```
+
+> After first rebuild NetworkManager persists, so GNOME/KDE WiFi steps skip this — use GUI next time.
 
 ### 2) GNOME ISO → Omarchy
 
