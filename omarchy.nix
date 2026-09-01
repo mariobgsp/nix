@@ -22,7 +22,6 @@
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
   services.fstrim.enable = true;
   zramSwap.enable = true; # ponytail: zram ~ better than swap partition, disable if RAM >64GB and you care about raw perf
-  services.thermald.enable = true;
   services.power-profiles-daemon.enable = true;
   # UX: night light (replaces omarchy toggle) — enable when needed
   # services.hyprsunset.enable = true;
@@ -65,24 +64,29 @@
   programs.gamemode.enable = true;
   # ponytail: mangohud + proton helpers — YAGNI lutris/bottles until needed
   # --- ThinkPad T14s Gen4 (Ryzen 7 7840U Phoenix1 + QCNFA765) laptop tune ---
-  hardware.cpu.amd.updateMicrocode = true;
   hardware.enableRedistributableFirmware = true;
   services.fwupd.enable = true;
-  services.thinkfan.enable = false; # ponytail: thinkfan manual curve YAGNI, use power-profiles-daemon auto
-  # amdgpu + RADV Vulkan already covered by hardware.graphics
+  services.thinkfan.enable = false;
   hardware.amdgpu.initrd.enable = true;
   hardware.amdgpu.opencl.enable = true;
-  # Qualcomm ath11k firmware already via enableAllFirmware
-  networking.networkmanager.wifi.powersave = false; # fix ath11k drop on suspend
-  # 16 threads + 14Gi RAM -> tune zram for gaming
+  networking.networkmanager.wifi.powersave = false;
+  # --- Battery efficiency (T14s 7840U + QCNFA765) ---
+  powerManagement.enable = true;
+  powerManagement.powertop.enable = true;
+  services.tlp.enable = false; # conflicts with power-profiles-daemon, keep ppd
+  services.thermald.enable = lib.mkForce false; # Intel-only, AMD uses amd_pstate
+  services.auto-cpufreq.enable = false; # conflicts with ppd, YAGNI
+  boot.kernelParams = [ "amd_pstate=active" "mem_sleep_default=s2idle" ];
+  hardware.cpu.amd.updateMicrocode = true;
+  services.upower.enable = true;
+  # lower idle power: dim + lock
+  services.logind.settings.Login.HandleLidSwitch = "suspend-then-hibernate";
+  systemd.sleep.extraConfig = "HibernateDelaySec=2h";
+  # wifi already: networking.networkmanager.wifi.powersave = false; # keep false for ath11k stability, battery loss ~2% only
+  # waybar battery already polls 5s — fine
+
   zramSwap.algorithm = "zstd";
   zramSwap.memoryPercent = 50;
-  # power: better battery + performance profile auto
-  services.power-profiles-daemon.enable = true;
-  services.upower.enable = true;
-  # suspend-then-hibernate for laptop
-  services.logind.settings.Login.HandleLidSwitch = "suspend-then-hibernate";
-  systemd.sleep.extraConfig = "HibernateDelaySec=1h";
 
 
 
