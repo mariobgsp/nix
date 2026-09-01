@@ -116,3 +116,14 @@ sudo mkdir -p /nix && sudo ln -s ~/nix /nix/config
 ## License
 
 MIT — fork of Omarchy rice, ported declaratively.
+
+### Quick start (minimal ISO → Omarchy)
+
+```bash
+# after minimal ISO install (No desktop):
+sudo nixos-generate-config --show-hardware-config > ~/nix/hardware-configuration.nix
+# or: cp /etc/nixos/hardware-configuration.nix ~/nix/
+cd ~/nix
+sudo nixos-rebuild switch --flake .#nixos
+reboot
+```
