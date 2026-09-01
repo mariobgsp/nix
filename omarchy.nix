@@ -17,7 +17,7 @@
 {
   # --- Efficiency (beats Omarchy disk/CPU) ---
   nix.settings.auto-optimise-store = true;
-  nix.gc = { automatic = true; dates = "weekly"; options = "--delete-older-than 7d"; };
+  nix.gc = { automatic = true; dates = "weekly"; options = "--delete-older-than 7d"; persistent = true; }; # runs at next boot if Sunday missed
   nix.settings.min-free = 1024 * 1024 * 1024; # auto-gc when <1GB left on 512GB nvme
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
   services.fstrim.enable = true;
