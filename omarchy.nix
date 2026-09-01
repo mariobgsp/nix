@@ -95,11 +95,12 @@
     brightnessctl pamixer pavucontrol
     nautilus # file manager like Omarchy
     brave firefox
-    neovim git curl wget
+    neovim git curl wget nodejs mise gh
     # Gaming helpers
     mangohud gamemode vulkan-tools proton-ge-bin
-    # AI agents — same as Omarchy 4.0
+    # AI agents — same as Omarchy 4.0 (+ pi harness via mise/npm)
     codex claude-code
+    # pi: managed by mise (0.84.4) — run `mise install` after rebuild, or npm i -g @earendil-works/pi-coding-agent
   ];
 
   # --- Home-manager Omarchy rice (Hyprland + Waybar + binds + AI) ---
@@ -290,6 +291,20 @@
     '';
 
     # --- AI integration like Omarchy 4.0 ---
+    home.file.".config/mise/config.toml".text = ''
+[tools]
+pi = "0.84.4"
+nodejs = "26.8.1"
+codex = "latest"
+opencode = "latest"
+''; # fallback if programs.mise module missing on 25.05
+    programs.mise = {
+      enable = true;
+      # globalTools true ensures mise auto-installs on shell entry
+      globalConfig = {
+        tools = { pi = "0.84.4"; nodejs = "26.8.1"; };
+      };
+    };
     programs.zsh = {
       enable = true;
       shellAliases = {
