@@ -45,7 +45,11 @@ Pick ISO — all three work, minimal is cleanest.
 Cleanest: no desktop bloat.
 
 ```bash
-# 1. After first boot on NixOS:
+# 0. Clone repo (first time only)
+nix-shell -p git --run "git clone https://github.com/mariobgsp/nix.git ~/nix"
+# or: git clone https://github.com/mariobgsp/nix.git ~/nix  # if git already installed
+
+# 1. Generate hardware config for this machine
 sudo nixos-generate-config --show-hardware-config > ~/nix/hardware-configuration.nix
 # or: cp /etc/nixos/hardware-configuration.nix ~/nix/hardware-configuration.nix
 
@@ -60,10 +64,13 @@ reboot # pick Hyprland at SDDM
 GNOME ISO works — you keep GNOME as fallback, Hyprland as daily.
 
 ```bash
-# 1. Same hardware config as above
+# 0. Clone (first time)
+nix-shell -p git --run "git clone https://github.com/mariobgsp/nix.git ~/nix"
+
+# 1. Hardware config
 sudo nixos-generate-config --show-hardware-config > ~/nix/hardware-configuration.nix
 
-# 2. Build — Hyprland auto-added alongside GNOME
+# 2. Build
 cd ~/nix
 sudo nixos-rebuild switch --flake .#nixos
 reboot # SDDM → pick Hyprland (or GNOME to fall back)
@@ -82,6 +89,7 @@ Then `sudo nixos-rebuild switch --flake .#nixos && nix-collect-garbage -d`.
 Same as GNOME — Plasma stays as fallback.
 
 ```bash
+nix-shell -p git --run "git clone https://github.com/mariobgsp/nix.git ~/nix"
 sudo nixos-generate-config --show-hardware-config > ~/nix/hardware-configuration.nix
 cd ~/nix
 sudo nixos-rebuild switch --flake .#nixos
@@ -99,6 +107,8 @@ All three paths: `flake.nix` already wires `configuration.nix + omarchy.nix + ho
 ### Classic `/etc/nixos` (no flake, any ISO)
 
 ```bash
+# clone first if you have no ~/nix yet
+nix-shell -p git --run "git clone https://github.com/mariobgsp/nix.git ~/nix"
 sudo cp ~/nix/omarchy.nix /etc/nixos/omarchy.nix
 # /etc/nixos/configuration.nix: imports = [ ./hardware-configuration.nix ./omarchy.nix ];
 sudo nixos-rebuild switch
